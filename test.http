@@ -1,0 +1,120 @@
+### =========================
+### USULAN ENDPOINTS TESTS
+### =========================
+
+### Get all usulan
+GET http://localhost:3000/api/usulan
+
+### Get usulan by ID
+GET http://localhost:3000/api/usulan/1
+
+### Get usulan with complete data (including related tables)
+GET http://localhost:3000/api/usulan/1/complete
+
+### Create new usulan
+POST http://localhost:3000/api/usulan
+Content-Type: application/json
+
+{
+  "judul": "Usulan Baru Test",
+  "deskripsi": "Deskripsi usulan untuk testing",
+  "status": "pending",
+  "budget": 25000000
+}
+
+### Update usulan
+PUT http://localhost:3000/api/usulan/1
+Content-Type: application/json
+
+{
+  "status": "approved",
+  "budget": 60000000
+}
+
+### =========================
+### ANGGOTA ENDPOINTS TESTS
+### =========================
+
+### Get anggota for usulan ID 1
+GET http://localhost:3000/api/usulan/1/anggota
+
+### Add new anggota to usulan ID 1
+POST http://localhost:3000/api/usulan/1/anggota
+Content-Type: application/json
+
+{
+  "nama": "Andi Wijaya",
+  "peran": "Anggota",
+  "email": "andi@email.com"
+}
+
+### Delete anggota by ID
+DELETE http://localhost:3000/api/anggota/1
+
+### =========================
+### DOKUMEN ENDPOINTS TESTS
+### =========================
+
+### Get dokumen for usulan ID 1
+GET http://localhost:3000/api/usulan/1/dokumen
+
+### Add new dokumen to usulan ID 1
+POST http://localhost:3000/api/usulan/1/dokumen
+Content-Type: application/json
+
+{
+  "nama_file": "dokumen_baru.pdf",
+  "ukuran": "3.2MB"
+}
+
+### Delete dokumen by ID
+DELETE http://localhost:3000/api/dokumen/1
+
+### =========================
+### TIMELINE ENDPOINTS TESTS
+### =========================
+
+### Get timeline for usulan ID 1
+GET http://localhost:3000/api/usulan/1/timeline
+
+### Add new timeline to usulan ID 1
+POST http://localhost:3000/api/usulan/1/timeline
+Content-Type: application/json
+
+{
+  "kegiatan": "Review Proposal",
+  "tanggal_mulai": "2024-02-01",
+  "tanggal_selesai": "2024-02-15",
+  "status": "pending"
+}
+
+### Update timeline status
+PUT http://localhost:3000/api/timeline/1
+Content-Type: application/json
+
+{
+  "status": "selesai"
+}
+
+### =========================
+### KOMENTAR ENDPOINTS TESTS
+### =========================
+
+### Get komentar for usulan ID 1
+GET http://localhost:3000/api/usulan/1/komentar
+
+### Add new komentar to usulan ID 1
+POST http://localhost:3000/api/usulan/1/komentar
+Content-Type: application/json
+
+{
+  "pengirim": "Reviewer",
+  "isi": "Proposal sudah bagus, tinggal diperbaiki di bagian metodologi"
+}
+
+### =========================
+### DELETE USULAN (CASCADE)
+### =========================
+
+### Delete usulan (will also delete all related data)
+DELETE http://localhost:3000/api/usulan/2
