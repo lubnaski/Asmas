@@ -107,11 +107,51 @@ db.serialize(() => {
     (3, 2, '/uploads/puskesmas_1.jpg', 'Kondisi puskesmas yang perlu renovasi')`);
 });
 
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Format: "Bearer TOKEN"
+
+  if (token == null) {
+    return res.sendStatus(401); // Unauthorized
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.sendStatus(403); // Forbidden (invalid token)
+    }
+    req.user = user; // Attach user payload to the request object
+    next(); // Proceed to the next middleware or route handler
+  });
+};
+
+
 // =========================
 // USULAN ENDPOINTS
 // =========================
 
 // GET all usulan with related data
+app.get('/api/usulan', (req, res) => {
+  const query = `
+    SELECT u.*, 
+           s.nama as skpd_nama,
+           p.tahun as periode_tahun,
+           st.nama as status_nama
+    FROM usulan u
+    LEFT JOIN skpd s ON u.skpd_id = s.id
+    LEFT JOIN periode p ON u.periode_id = p.id
+    LEFT JOIN status_usulan st ON u.status_id = st.id
+    WHERE u.deleted_at IS NULL -- Exclude soft-deleted records
+    ORDER BY u.created_at DESC
+  `;
+  
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(rows);
+  });
+});
+
 app.get('/api/usulan', (req, res) => {
   const query = `
     SELECT u.*, 
@@ -309,8 +349,45 @@ app.post('/api/usulan', (req, res) => {
   });
 });
 
+// POST new usulan with Token
+app.post('/api/usulan', authenticateToken, (req, res) => {
+
+  const { judul, deskripsi, pengusul, kode_wilayah, latitude, longitude, skpd_id, periode_id, status_id } = req.body;
+  
+  const query = `
+    INSERT INTO usulan (judul, deskripsi, pengusul, kode_wilayah, latitude, longitude, skpd_id, periode_id, status_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  
+  db.run(query, [judul, deskripsi, pengusul, kode_wilayah, latitude, longitude, skpd_id, periode_id, status_id], function(err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    
+    // Get the created usulan with related data
+    const getQuery = `
+      SELECT u.*, 
+             s.nama as skpd_nama,
+             p.tahun as periode_tahun,
+             st.nama as status_nama
+      FROM usulan u
+      LEFT JOIN skpd s ON u.skpd_id = s.id
+      LEFT JOIN periode p ON u.periode_id = p.id
+      LEFT JOIN status_usulan st ON u.status_id = st.id
+      WHERE u.id = ?
+    `;
+    
+    db.get(getQuery, [this.lastID], (err, row) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.status(201).json(row);
+    });
+  });
+});
+
 // NEW: POST usulan asmas with complete data including multiple images
-app.post('/api/usulan-asmas', (req, res) => {
+app.post('/api/usulan-asmas', authenticateToken, (req, res) => {
   const { 
     judul, 
     deskripsi, 
@@ -436,7 +513,7 @@ app.post('/api/usulan-asmas', (req, res) => {
 });
 
 // PUT update usulan
-app.put('/api/usulan/:id', (req, res) => {
+app.put('/api/usulan/:id', authenticateToken, (req, res) => {
   const { judul, deskripsi, pengusul, kode_wilayah, latitude, longitude, skpd_id, periode_id, status_id } = req.body;
   
   const query = `
@@ -479,7 +556,7 @@ app.put('/api/usulan/:id', (req, res) => {
 });
 
 // NEW: PUT update usulan asmas with complete data including multiple images
-app.put('/api/usulan-asmas/:id', (req, res) => {
+app.put('/api/usulan-asmas/:id', authenticateToken, (req, res) => {
   const { 
     judul, 
     deskripsi, 
@@ -633,7 +710,7 @@ app.put('/api/usulan-asmas/:id', (req, res) => {
 });
 
 // DELETE usulan (soft delete)
-app.delete('/api/usulan/:id', (req, res) => {
+app.delete('/api/usulan/:id', authenticateToken, (req, res) => {
   const query = `UPDATE usulan SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?`;
   
   db.run(query, [req.params.id], function(err) {
